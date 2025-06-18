@@ -20,7 +20,6 @@ export const getTasksByProjectId = async (userId, projectId) => {
     const project = await prisma.project.findUnique({
         where: { id: projectId },
     });
-    console.log(project);
 
     if (!project) throw new Error("Project tidak ditemukan");
 
@@ -74,10 +73,16 @@ export const updateTaskStatusOrAssignee = async (userId, taskId, status) => {
         where: { id: taskId },
         data: {
             status: status,
-            assigneeId: userId,
+            assigneeId:  status == 'todo' ? null : userId,
         },
     });
 };
+
+export const updateAssigneeTask = async (userId, taskId) => {
+    // await prisma.task.update({ where: { id: taskId }, data: { assigneeId: userId } });
+    const user = await prisma.user.findUnique({where: {id: userId}});
+    return user; 
+}
 
 /** ✅ Update title dan description (owner only) */
 export const updateTaskContent = async (userId, taskId, payload) => {
@@ -95,3 +100,70 @@ export const updateTaskContent = async (userId, taskId, payload) => {
         },
     });
 };
+
+
+export const getTaskStatsByUser = async (userId) => {
+  // Get all project IDs where user is owner or member
+  const projects = await prisma.project.findMany({
+    where: {
+      OR: [
+        { ownerId: userId },
+        { memberships: { some: { userId } } }
+      ]
+    },
+    select: { id: true }
+  })
+  
+  const projectIds = projects.map(p => p.id)
+
+  if (projectIds.length === 0) {
+    return {
+      tasks: { total: 0, todo: 0, in_progress: 0, done: 0 },
+      projects: { total: 0, active: 0, completed: 0, archived: 0 }
+    }
+  }
+
+  // Task statistics
+  const taskStats = await prisma.task.groupBy({
+    by: ['status'],
+    where: {
+      projectId: { in: projectIds }
+    },
+    _count: {
+      status: true
+    }
+  })
+
+  // Project statistics
+  const projectStats = await prisma.project.groupBy({
+    by: ['ownerId'],
+    where: {
+      id: { in: projectIds }
+    },
+    _count: {
+      _all: true
+    }
+  })
+
+  // Transform task stats
+  const tasks = {
+    total: taskStats.reduce((sum, item) => sum + item._count.status, 0),
+    todo: taskStats.find(item => item.status === 'todo')?._count.status || 0,
+    in_progress: taskStats.find(item => item.status === 'in_progress')?._count.status || 0,
+    done: taskStats.find(item => item.status === 'done')?._count.status || 0
+  }
+
+  // For projects, we need a better way to determine status
+  // Currently just showing counts - you should add status field to Project model
+  const projectsCount = projectStats.reduce((sum, item) => sum + item._count._all, 0)
+
+  return {
+    tasks,
+    projects: {
+      total: projectsCount,
+      active: projectsCount, // Replace with actual logic when you have project status
+      completed: 0,
+      archived: 0
+    }
+  }
+}

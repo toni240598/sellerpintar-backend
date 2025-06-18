@@ -11,6 +11,8 @@ import {
     handleUpdateTaskStatusOrAssignee,
     handleGetTasksByProject,
     handleEditProject,
+    handleAssigneeTask,
+    getUserTaskStats,
 } from "../controllers/projectController.js";
 import validateRequest from "../middlewares/validateRequest.js";
 
@@ -58,6 +60,7 @@ router.put(
   ],
   handleUpdateTaskStatusOrAssignee
 );
+router.put("task/:taskId/assignee", handleAssigneeTask)
 router.put(
   "/task/:taskId/content",
   [
@@ -67,5 +70,5 @@ router.put(
   ],
   handleUpdateTaskContent
 );
-
+router.get('/task/stats', getUserTaskStats)
 export default router;

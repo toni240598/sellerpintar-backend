@@ -11,6 +11,8 @@ import {
   getTasksByProjectId,
   updateTaskContent,
   updateTaskStatusOrAssignee,
+  updateAssigneeTask,
+  getTaskStatsByUser,
 } from "../services/taskService.js";
 
 
@@ -131,6 +133,17 @@ export const handleUpdateTaskStatusOrAssignee = async (req, res) => {
   }
 };
 
+export const handleAssigneeTask = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { taskId } = req.params;
+    const data = await updateAssigneeTask(userId, taskId);
+    res.status(200).json({status: 'success', data });
+  } catch (err) {
+    res.status(400).json({ status: "error", message: err.message });
+  }
+}
+
 export const handleUpdateTaskContent = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -141,3 +154,13 @@ export const handleUpdateTaskContent = async (req, res) => {
     res.status(400).json({ status: "error", message: err.message });
   }
 };
+
+export const getUserTaskStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const stats = await getTaskStatsByUser(userId)
+    res.json(stats)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get task statistics' })
+  }
+}
