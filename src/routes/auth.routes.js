@@ -1,6 +1,6 @@
 import express from "express";
 import { body } from "express-validator";
-import { login, register } from "../controllers/authController.js";
+import { login, register, verifyToken } from "../controllers/authController.js";
 import validateRequest from "../middlewares/validateRequest.js";
 
 const router = express.Router();
@@ -26,5 +26,5 @@ router.post(
   ],
   login
 );
-
+router.get("/verify-token", verifyToken);
 export default router;

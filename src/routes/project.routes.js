@@ -10,6 +10,7 @@ import {
     handleUpdateTaskContent,
     handleUpdateTaskStatusOrAssignee,
     handleGetTasksByProject,
+    handleEditProject,
 } from "../controllers/projectController.js";
 import validateRequest from "../middlewares/validateRequest.js";
 
@@ -20,7 +21,11 @@ router.post(
     [body("name").notEmpty().withMessage("Nama project wajib diisi"), validateRequest],
     handleCreateProject
 );
-
+router.put(
+    "/project/:projectId",
+    [body("name").notEmpty().withMessage("Nama project wajib diisi"), validateRequest],
+    handleEditProject
+);
 router.post(
     "/project/invite",
     [

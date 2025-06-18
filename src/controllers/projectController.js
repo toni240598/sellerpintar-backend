@@ -4,10 +4,11 @@ import {
   getAllUserProjects,
   getProjectDetailWithMembers,
   inviteMemberToProject,
+  updateProject,
 } from "../services/projectService.js";
 import {
-  getTasksByProjectId,
   createTask,
+  getTasksByProjectId,
   updateTaskContent,
   updateTaskStatusOrAssignee,
 } from "../services/taskService.js";
@@ -23,6 +24,19 @@ export const handleCreateProject = async (req, res) => {
     res.status(400).json({ status: "error", message: err.message });
   }
 };
+
+export const handleEditProject = async (req, res, next) => {
+  try {
+    const userId = req.user.id
+    const { projectId } = req.params
+    const { name } = req.body
+
+    const updatedProject = await updateProject(projectId, userId, name)
+    res.json({ message: 'Project berhasil diperbarui', data: updatedProject })
+  } catch (err) {
+    res.status(400).json({ status: "error", message: err.message });
+  }
+}
 
 export const handleInviteMember = async (req, res) => {
   try {
@@ -68,10 +82,7 @@ export const handleGetProjectDetail = async (req, res) => {
 
     res.status(200).json({
       status: "success",
-      data: {
-        project,
-        members,
-      },
+      data: { ...project, members},
     });
   } catch (err) {
     res.status(403).json({

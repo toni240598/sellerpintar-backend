@@ -10,6 +10,29 @@ export const createProject = async (ownerId, name) => {
   return project;
 };
 
+export const updateProject = async (projectId, userId, name) => {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  })
+
+  if (!project) {
+    const err = new Error('Project tidak ditemukan')
+    err.statusCode = 404
+    throw err
+  }
+
+  if (project.ownerId !== userId) {
+    const err = new Error('Kamu tidak memiliki izin untuk mengedit project ini')
+    err.statusCode = 403
+    throw err
+  }
+
+  return await prisma.project.update({
+    where: { id: projectId },
+    data: { name },
+  })
+}
+
 export const inviteMemberToProject = async (projectId, emailToInvite, inviterId) => {
   const project = await prisma.project.findUnique({ where: { id: projectId } });
 
@@ -50,8 +73,10 @@ export const getAllUserProjects = async (userId) => {
   });
 
   const projectsFromMembership = memberProjects.map((m) => m.project);
-
-  return [...ownedProjects, ...projectsFromMembership];
+  const allProjects = [...ownedProjects, ...projectsFromMembership].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
+  return allProjects
 };
 
 export const deleteProject = async (projectId, userId) => {
@@ -100,19 +125,33 @@ export const getProjectDetailWithMembers = async (projectId, userId) => {
   }
 
   // Ambil member list
-  const memberships = await prisma.membership.findMany({
-    where: { projectId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
+  const [users, memberships] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        id: {
+          not: userId, // Mengecualikan userId tertentu
         },
       },
-    },
-  });
+      select: {
+        id: true,
+        email: true,
+      },
+      orderBy: {
+        email: 'asc',
+      },
+    }),
+    prisma.membership.findMany({
+      where: { projectId },
+      select: {
+        userId: true,
+      },
+    }),
+  ]);
+  const memberIds = new Set(memberships.map((m) => m.userId));
+  const usersWithMembershipStatus = users.map((user) => ({
+    ...user,
+    isMember: memberIds.has(user.id),
+  }));
 
-  const members = memberships.map((m) => m.user);
-
-  return { project, members };
+  return { project, members: usersWithMembershipStatus };
 };

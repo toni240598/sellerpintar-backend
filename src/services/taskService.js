@@ -26,8 +26,8 @@ export const getTasksByProjectId = async (userId, projectId) => {
 
     const { isOwner } = await checkUserAccessToProject(userId, projectId);
 
-    // Ambil daftar task sdsdsd
-    const tasks = await prisma.task.findMany({
+    // Ambil daftar task
+    const rawTasks = await prisma.task.findMany({
         where: { projectId },
         include: {
             assignee: {
@@ -38,9 +38,14 @@ export const getTasksByProjectId = async (userId, projectId) => {
             },
         },
         orderBy: {
-            createdAt: "desc",
+            createdAt: 'desc',
         },
-    });
+    })
+
+    const tasks = rawTasks.map((task) => ({
+        ...task,
+        assigneeEmail: task.assignee?.email || null,
+    }))
     return tasks;
 };
 

@@ -21,3 +21,8 @@ export const login = async (req, res) => {
     res.status(401).json({ status: "error", message: err.message });
   }
 };
+
+export const verifyToken = async (req, res) => {
+  const user = req.user;
+  res.status(200).json({data: user});
+}
